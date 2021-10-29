@@ -1,15 +1,19 @@
 package com.antarikshc.stockplay.ui
 
+import android.app.Application
+import android.content.Context
+import android.text.format.DateUtils
 import android.util.Log
 import androidx.hilt.lifecycle.ViewModelInject
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.PrimaryKey
-import com.antarikshc.stockplay.data.local.StockDatabase
-import com.google.gson.*
+import androidx.room.*
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -17,15 +21,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import okhttp3.*
 import java.lang.reflect.Type
+import java.util.*
 import kotlin.math.round
 
-class MainViewModel @ViewModelInject constructor(
-    private val db: StockDatabase
-) : ViewModel() {
+class MainViewModel(private val app: Application): AndroidViewModel(app) {
 
     private val _stocks = MutableLiveData<List<Stock>>()
     val stocks = _stocks
-    private val client = OkHttpClient.Builder().build();
+    private val client = OkHttpClient.Builder().build()
+    private val db = StockDatabase.getInstance(app.applicationContext)
     private val gson = GsonBuilder()
         .registerTypeAdapter(
             IncPrices::class.java,
@@ -116,4 +120,47 @@ data class Stock(
         return result
     }
 
+}
+
+@Database(entities = [Stock::class], version = 1)
+abstract class StockDatabase : RoomDatabase() {
+
+    abstract fun stockDao(): StockDao
+
+    companion object {
+        @Volatile private var INSTANCE: StockDatabase? = null
+        fun getInstance(context: Context): StockDatabase {
+            synchronized(this) {
+                var instance = INSTANCE
+                if (instance == null) {
+                    instance = Room.databaseBuilder(context.applicationContext,StockDatabase::class.java,"stock_play_database")
+                        .fallbackToDestructiveMigration()
+                        .build()
+                    INSTANCE = instance
+                }
+                return instance
+            }
+        }
+    }
+}
+
+@Dao
+interface StockDao {
+    @Query("SELECT * FROM stock_table WHERE name = :name") suspend fun get(name: String): Stock?
+    @Query("SELECT * FROM stock_table ORDER BY name ASC LIMIT 50") fun getStocks(): Flow<List<Stock>>
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insert(stock: Stock)
+
+    /**
+     * Updates stock prices if already present in DB
+     * Inserts if no stock present (prev price = 0)
+     */
+    @Transaction
+    suspend fun insertOrUpdate(prices: List<IncPrices>) = prices.forEach { item ->
+        val stockFromDb = get(item.name)
+        insert(if (stockFromDb != null)
+            Stock(name = item.name, price = item.price, previousPrice = stockFromDb.price)
+        else
+            Stock(name = item.name, price = item.price)
+        )
+    }
 }

@@ -1,5 +1,6 @@
 package com.antarikshc.stockplay.ui
 
+import android.text.format.DateUtils
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -7,7 +8,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.antarikshc.stockplay.R
-import com.antarikshc.stockplay.utils.getRelativeTime
 import kotlinx.android.synthetic.main.layout_stock_item.view.*
 import java.util.*
 
@@ -69,4 +69,38 @@ class MainListAdapter : ListAdapter<Stock, MainListAdapter.ViewHolder>(StockDC()
             newItem: Stock
         ): Boolean = oldItem == newItem
     }
+}
+
+
+fun Date.getRelativeTime(): String {
+    val now = Date().time
+    val difference = now - time
+
+    val relativeTime = when {
+        difference < 2000L -> "Just now"
+
+        difference < DateUtils.MINUTE_IN_MILLIS -> DateUtils.getRelativeTimeSpanString(
+            time,
+            now,
+            DateUtils.SECOND_IN_MILLIS
+        )
+        difference < DateUtils.HOUR_IN_MILLIS -> DateUtils.getRelativeTimeSpanString(
+            time,
+            now,
+            DateUtils.MINUTE_IN_MILLIS
+        )
+        difference < DateUtils.DAY_IN_MILLIS -> DateUtils.getRelativeTimeSpanString(
+            time,
+            now,
+            DateUtils.HOUR_IN_MILLIS
+        )
+        difference < DateUtils.WEEK_IN_MILLIS -> DateUtils.getRelativeTimeSpanString(
+            time,
+            now,
+            DateUtils.DAY_IN_MILLIS
+        )
+        else -> DateUtils.getRelativeTimeSpanString(time, now, DateUtils.WEEK_IN_MILLIS)
+    }
+
+    return relativeTime.toString()
 }
