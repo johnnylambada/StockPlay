@@ -23,21 +23,19 @@ class Socket @Inject constructor(private val client: OkHttpClient) {
         private val TAG = Socket::class.java.simpleName
     }
 
-    fun connect(url: String): Flow<String> {
-        return callbackFlow<String> {
-            val request = Request.Builder().url(url).build()
-            val webSocket = client.newWebSocket(request, object : WebSocketListener() {
-                override fun onOpen(webSocket: WebSocket, response: Response) { Log.d(TAG,"Connected: $response")}
-                override fun onMessage(webSocket: WebSocket, text: String) {offer(text)} // Emit value to Flow
-                override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { if (code != 1000) close(SocketNetworkException("Network Failure"))}
-                override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {close(SocketNetworkException("Network Failure"))}
-            })
-            awaitClose { webSocket.close(1000, "Closed") } // Wait for the Flow to finish
-        }
-        .retryWhen { cause, attempt ->
-            delay(1000 * if (attempt<8) attempt else 8) // Exponential backoff of 1 second on each retry
-            cause is SocketNetworkException // Do not retry for IllegalArgument or 3 attempts are reached
-        }
+    fun connect(url: String): Flow<String> = callbackFlow<String> {
+        val request = Request.Builder().url(url).build()
+        val webSocket = client.newWebSocket(request, object : WebSocketListener() {
+            override fun onOpen(webSocket: WebSocket, response: Response) { Log.d(TAG,"Connected: $response")}
+            override fun onMessage(webSocket: WebSocket, text: String) {offer(text)} // Emit value to Flow
+            override fun onClosed(webSocket: WebSocket, code: Int, reason: String) { if (code != 1000) close(SocketNetworkException("Network Failure"))}
+            override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {close(SocketNetworkException("Network Failure"))}
+        })
+        awaitClose { webSocket.close(1000, "Closed") } // Wait for the Flow to finish
+    }
+    .retryWhen { cause, attempt ->
+        delay(1000 * if (attempt<8) attempt else 8) // Exponential backoff of 1 second on each retry
+        cause is SocketNetworkException // Do not retry for IllegalArgument or 3 attempts are reached
     }
 
     class SocketNetworkException(message: String) : Exception(message)
