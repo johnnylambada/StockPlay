@@ -9,15 +9,14 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.antarikshc.stockplay.data.local.StockDatabase
-import com.antarikshc.stockplay.helpers.PricesDeserializer
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
+import com.google.gson.*
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import okhttp3.*
+import java.lang.reflect.Type
 import kotlin.math.round
 
 class MainViewModel @ViewModelInject constructor(
@@ -30,7 +29,14 @@ class MainViewModel @ViewModelInject constructor(
     private val gson = GsonBuilder()
         .registerTypeAdapter(
             IncPrices::class.java,
-            PricesDeserializer()
+            object: JsonDeserializer<IncPrices> {
+                override fun deserialize(json: JsonElement?, typeOfT: Type?, context: JsonDeserializationContext?): IncPrices
+                {
+                    // Example: [["intc",147.8571865982666],["tck",37.09782037661585],["ebr",160.86492026172508]]
+                    val array = json?.asJsonArray
+                    return IncPrices(array?.get(0)?.asString ?: "MSFT", array?.get(1)?.asDouble ?: 0.0)
+                }
+            }
         )
         .create()
 
