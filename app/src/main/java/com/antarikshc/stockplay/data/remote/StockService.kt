@@ -19,17 +19,8 @@ class StockService @Inject constructor(private val socket: Socket, private val g
         const val URL = "ws://stocks.mnet.website"
     }
 
-    fun getStonks(): Flow<List<IncPrices>> {
-        return socket.connect(URL)
-            .map {
-                gson.fromJson(it, object : TypeToken<List<IncPrices>>() {}.type) as List<IncPrices>
-            }
-            .map {
-                it.map { item ->
-                    item.copy(price = round(item.price * 1000) / 1000)
-                }
-            }
-            .flowOn(Dispatchers.IO)
-    }
-
+    fun getStonks(): Flow<List<IncPrices>> = socket.connect(URL)
+        .map { gson.fromJson(it, object : TypeToken<List<IncPrices>>() {}.type) as List<IncPrices> }
+        .map { it.map { item -> item.copy(price = round(item.price * 1000) / 1000) }            }
+        .flowOn(Dispatchers.IO)
 }

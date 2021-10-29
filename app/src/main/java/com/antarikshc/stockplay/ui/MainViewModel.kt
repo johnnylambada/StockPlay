@@ -17,9 +17,7 @@ class MainViewModel @ViewModelInject constructor(
     val stocks = _stocks
 
     init {
-        repository.getStocks()
-            .onEach { _stocks.postValue(it) }
-            .launchIn(viewModelScope)
+        repository.getStocks().onEach { _stocks.postValue(it) }.launchIn(viewModelScope)
 
         repository.refreshStocks(viewModelScope)
     }

@@ -20,20 +20,12 @@ class Repository @Inject constructor(
      * Return Flowable Stream of Stocks from Database
      * Automatically emits on each DB update
      */
-    fun getStocks(): Flow<List<Stock>> {
-        return db.stockDao().getStocks()
-    }
+    fun getStocks(): Flow<List<Stock>> = db.stockDao().getStocks()
 
     /**
      * Fetch Stock Prices from Socket and Update DB
      * @param coroutineScope = Ideally ViewModelScope
      */
-    fun refreshStocks(coroutineScope: CoroutineScope) {
-        service.getStonks()
-            .onEach {
-                db.stockDao().insertOrUpdate(it)
-            }
-            .launchIn(coroutineScope)
-    }
+    fun refreshStocks(coroutineScope: CoroutineScope) { service.getStonks().onEach { db.stockDao().insertOrUpdate(it)}.launchIn(coroutineScope)    }
 
 }
