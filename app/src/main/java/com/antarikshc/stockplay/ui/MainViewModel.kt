@@ -5,10 +5,13 @@ import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.antarikshc.stockplay.data.local.StockDatabase
-import com.antarikshc.stockplay.models.IncPrices
-import com.antarikshc.stockplay.models.Stock
+import com.antarikshc.stockplay.helpers.PricesDeserializer
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -18,13 +21,18 @@ import okhttp3.*
 import kotlin.math.round
 
 class MainViewModel @ViewModelInject constructor(
-    private val db: StockDatabase,
-    private val gson: Gson,
-    private val client: OkHttpClient
+    private val db: StockDatabase
 ) : ViewModel() {
 
     private val _stocks = MutableLiveData<List<Stock>>()
     val stocks = _stocks
+    private val client = OkHttpClient.Builder().build();
+    private val gson = GsonBuilder()
+        .registerTypeAdapter(
+            IncPrices::class.java,
+            PricesDeserializer()
+        )
+        .create()
 
     companion object {
         private val TAG = MainViewModel::class.java.simpleName
@@ -33,7 +41,6 @@ class MainViewModel @ViewModelInject constructor(
     init {
         db.stockDao().getStocks().onEach { _stocks.postValue(it) }.launchIn(viewModelScope)
         connect("ws://stocks.mnet.website")
-
             .map { gson.fromJson(it, object : TypeToken<List<IncPrices>>() {}.type) as List<IncPrices> }
             .map { it.map { item -> item.copy(price = round(item.price * 1000) / 1000) }            }
             .flowOn(Dispatchers.IO).onEach { db.stockDao().insertOrUpdate(it) }
@@ -61,7 +68,46 @@ class MainViewModel @ViewModelInject constructor(
             }
     }
 
-    class SocketNetworkException(message: String) : Exception(message)
+}
 
+class SocketNetworkException(message: String) : Exception(message)
+
+data class IncPrices(val name: String, val price: Double)
+
+@Entity(tableName = "stock_table")
+data class Stock(
+
+    @PrimaryKey(autoGenerate = false)
+    val name: String,
+
+    val price: Double,
+
+    @ColumnInfo(name = "previous_price")
+    val previousPrice: Double = 0.0,
+
+    @ColumnInfo(name = "updated_at")
+    val updatedAt: Long = System.currentTimeMillis()
+
+) {
+
+    override fun equals(other: Any?): Boolean {
+        if (javaClass != other?.javaClass) return false
+        other as Stock?
+
+        if (name != other.name) return false
+        if (price != other.price) return false
+        if (previousPrice != other.previousPrice) return false
+        if (updatedAt != other.updatedAt) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = name.hashCode()
+        result = 31 * result + price.hashCode()
+        result = 31 * result + previousPrice.hashCode()
+        result = 31 * result + updatedAt.hashCode()
+        return result
+    }
 
 }

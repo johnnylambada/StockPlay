@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.antarikshc.stockplay.models.Stock
+import com.antarikshc.stockplay.ui.Stock
 
 @Database(entities = [Stock::class], version = 1)
 abstract class StockDatabase : RoomDatabase() {

@@ -1,6 +1,6 @@
 package com.antarikshc.stockplay.helpers
 
-import com.antarikshc.stockplay.models.IncPrices
+import com.antarikshc.stockplay.ui.IncPrices
 import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement

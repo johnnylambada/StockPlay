@@ -7,7 +7,6 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.antarikshc.stockplay.R
-import com.antarikshc.stockplay.models.Stock
 import com.antarikshc.stockplay.utils.getRelativeTime
 import kotlinx.android.synthetic.main.layout_stock_item.view.*
 import java.util.*

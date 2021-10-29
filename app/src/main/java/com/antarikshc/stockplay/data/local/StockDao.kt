@@ -1,8 +1,8 @@
 package com.antarikshc.stockplay.data.local
 
 import androidx.room.*
-import com.antarikshc.stockplay.models.IncPrices
-import com.antarikshc.stockplay.models.Stock
+import com.antarikshc.stockplay.ui.IncPrices
+import com.antarikshc.stockplay.ui.Stock
 import kotlinx.coroutines.flow.Flow
 
 @Dao
